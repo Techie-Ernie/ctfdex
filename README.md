@@ -17,4 +17,11 @@ git clone https://github.com/Techie-Ernie/ctfdex.git
 cd ctfdex
 pip install -r requirements.txt
 playwright install 
+```
+
+### How to use 
+
+Edit configuration at config.yaml, or create another config file, then run:
+```bash
 python main.py 
+```

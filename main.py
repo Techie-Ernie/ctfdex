@@ -2,8 +2,13 @@ import subprocess
 import os 
 from scraper import CTFdScraper
 import yaml
+import argparse
 
-with open('config.yaml', 'r') as f:
+parser = argparse.ArgumentParser(prog="CTFDex", description="CTF Solver with Codex")
+parser.add_argument("--config", '-c', default='config.yaml')
+args = parser.parse_args()
+
+with open(args.config, 'r') as f:
     config = yaml.safe_load(f)
 
 CHALL_DIR = config['chall_dir']
