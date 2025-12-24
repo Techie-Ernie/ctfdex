@@ -12,7 +12,7 @@ Each challenge is then passed into OpenAI's Codex which attempts to solve the ch
 
 Install Python, git and [Codex](https://openai.com/codex/)
 
-```
+```bash
 git clone https://github.com/Techie-Ernie/ctfdex.git
 cd ctfdex
 pip install -r requirements.txt
