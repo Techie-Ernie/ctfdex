@@ -1,0 +1,13 @@
+chall_dir: 'challs/'
+
+scraping:
+  url: "http://127.0.0.1:4000"
+  headless: false
+  login: true # set to false if the platform doesn't require login 
+  user: "techie"
+  password: "ernie"
+
+ctf:
+  flag_format: 'picoCTF'
+
+

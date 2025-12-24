@@ -1,20 +1,25 @@
 import subprocess
 import os 
 from scraper import CTFdScraper
-import argparse
+import yaml
 
-BASE_DIR = os.getcwd()
-FLAG_FORMAT = 'picoCTF'
-URL = "http://127.0.0.1:4000"
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
 
-scraper = CTFdScraper(url=URL, headless=False, login=True, user="techie", password="ernie")
+CHALL_DIR = config['chall_dir']
+FLAG_FORMAT = config['ctf']['flag_format']
+URL = config['scraping']['url']
 
+scraper = CTFdScraper(url=URL, headless=config['scraping']['headless'], login=config['scraping']['login'], user=config['scraping']['user'], password=config['scraping']['password'])
+
+# create chall dir if chall dir doesn't exist
+os.makedirs(CHALL_DIR, exist_ok=True)
 
 challenges = scraper.scrape_ctfd()
 
 flags = []
 for chall in challenges: 
-    chall_dir = os.path.join(BASE_DIR, chall['name'])
+    chall_dir = os.path.join(CHALL_DIR, chall['name'])
     os.makedirs(chall_dir, exist_ok=True)
     for f in chall['files']:
         subprocess.run(
