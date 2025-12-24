@@ -25,3 +25,7 @@ Edit configuration at config.yaml, or create another config file, then run:
 ```bash
 python main.py 
 ```
+or with a custom config file:
+```bash
+python main.py -c newconfig.yaml
+```

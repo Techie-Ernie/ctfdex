@@ -80,6 +80,3 @@ class CTFdScraper():
             time.sleep(1) # short pause for submission to go through 
             browser.close()
 
-if __name__ == "__main__":
-    scraper = CTFdScraper("http://127.0.0.1:4000/", headless=False, login=True, user="techie", password="ernie")
-    scraper.submit_flag("ReadMyCert", "picoCTF{read_mycert_3aa80090}")
