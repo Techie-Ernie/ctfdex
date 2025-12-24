@@ -27,10 +27,17 @@ for chall in challenges:
     chall_dir = os.path.join(CHALL_DIR, chall['name'])
     os.makedirs(chall_dir, exist_ok=True)
     for f in chall['files']:
-        subprocess.run(
-            ["wget", f["url"]],
-            cwd=chall_dir,
-            check=False
+        if os.name == 'nt':
+            subprocess.run(
+                ["curl", "-LO", f["url"]],
+                cwd=chall_dir,
+                check=False,
+            )
+        else:
+            subprocess.run(
+                ["wget", f["url"]],
+                cwd=chall_dir,
+                check=False
             )   
 
     print(f"Downloaded all {len(chall['files'])} files!")
