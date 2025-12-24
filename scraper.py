@@ -1,53 +1,85 @@
 from playwright.sync_api import sync_playwright
+import time 
 
-def scrape_ctfd(url, headless=True, login=True, user="techie", password="ernie"):
-    challenges = []
+class CTFdScraper():
+    def __init__(self, url, headless, login, user, password):
+        self.url = url
+        self.headless = headless
+        self.login = login
+        self.user = user
+        self.password = password
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
-        page = browser.new_page()
-        if login:
-            page.goto(f"{url}/login", timeout=60000)
-            page.fill('input[name="name"]', user)
-            page.fill('input[name="password"]', password)
-            page.click('input[type="submit"]')
-            print("login successful")
+    def scrape_ctfd(self):
+        challenges = []
 
-        page.goto(f"{url}/challenges", timeout=60000)
-        page.wait_for_selector('.challenge-button')
-        challenge_buttons = page.locator('.challenge-button')
-        count = challenge_buttons.count() # number of challs
-        
-        for i in range(count):
-            page.locator(".challenge-button").nth(i).click() # open chall
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=self.headless)
+            page = browser.new_page()
+
+            if self.login:
+                page.goto(f"{self.url}/login", timeout=60000)
+                page.fill('input[name="name"]', self.user)
+                page.fill('input[name="password"]', self.password)
+                page.click('input[type="submit"]')
+                print("Login successful")
+
+            page.goto(f"{self.url}/challenges", timeout=60000)
+            page.wait_for_selector('.challenge-button')
+            challenge_buttons = page.locator('.challenge-button')
+            count = challenge_buttons.count() # number of challs
+            
+            for i in range(count):
+                page.locator(".challenge-button").nth(i).click() # open chall
+                modal = page.locator("#challenge-window")
+                modal.wait_for(state="visible")
+
+                name = page.locator(".challenge-name").inner_text().strip()
+                description = page.locator(".challenge-desc").inner_text().strip()
+                points = page.locator(".challenge-value").inner_text().strip()
+                files = []
+                for f in page.locator(".challenge-files a").all():
+                    files.append({
+                        "name": f.inner_text().strip(),
+                        "url": f"{self.url}{f.get_attribute("href")}"
+                    })
+                
+                modal = page.locator("#challenge-window")
+                modal.wait_for(state="visible")
+                modal.locator("button.btn-close").click()
+                modal.wait_for(state="hidden")
+                challenge = {}
+                challenge['name'] = name
+                challenge['description'] = description
+                challenge['files'] = files
+                challenge['points'] = points
+                challenges.append(challenge)
+                
+            browser.close()
+            return challenges
+
+    def submit_flag(self, chall_name, flag):
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=self.headless)
+            page = browser.new_page()
+            if self.login:
+                page.goto(f"{self.url}/login", timeout=60000)
+                page.fill('input[name="name"]', self.user)
+                page.fill('input[name="password"]', self.password)
+                page.click('input[type="submit"]')
+                print("Login successful")
+
+            page.goto(f"{self.url}/challenges", timeout=60000)
+            page.wait_for_selector('.challenge-button')
+            challenge_button = page.locator('.challenge-button', has_text=chall_name)     
+            challenge_button.first.click()       
             modal = page.locator("#challenge-window")
             modal.wait_for(state="visible")
-
-            name = page.locator(".challenge-name").inner_text().strip()
-            description = page.locator(".challenge-desc").inner_text().strip()
-            points = page.locator(".challenge-value").inner_text().strip()
-            files = []
-            for f in page.locator(".challenge-files a").all():
-                files.append({
-                    "name": f.inner_text().strip(),
-                    "url": f"{url}{f.get_attribute("href")}"
-                })
             
-            modal = page.locator("#challenge-window")
-            modal.wait_for(state="visible")
-            modal.locator("button.btn-close").click()
-            modal.wait_for(state="hidden")
-            challenge = {}
-            challenge['name'] = name
-            challenge['description'] = description
-            challenge['files'] = files
-            challenge['points'] = points
-            challenges.append(challenge)
-            
-        browser.close()
-        return challenges
-
-# TODO: Add auto-submission of flags
+            modal.locator('input[name="submission"]').fill(flag) # fill in with flag
+            modal.locator('#challenge-submit').click() # submit 
+            time.sleep(1) # short pause for submission to go through 
+            browser.close()
 
 if __name__ == "__main__":
-    print(scrape_ctfd())
+    scraper = CTFdScraper("http://127.0.0.1:4000/", headless=False, login=True, user="techie", password="ernie")
+    scraper.submit_flag("ReadMyCert", "picoCTF{read_mycert_3aa80090}")

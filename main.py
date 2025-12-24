@@ -1,12 +1,16 @@
 import subprocess
 import os 
-from scraper import scrape_ctfd
+from scraper import CTFdScraper
+import argparse
 
-url = "http://127.0.0.1:4000"
-
-challenges = scrape_ctfd(url)
 BASE_DIR = os.getcwd()
 FLAG_FORMAT = 'picoCTF'
+URL = "http://127.0.0.1:4000"
+
+scraper = CTFdScraper(url=URL, headless=False, login=True, user="techie", password="ernie")
+
+
+challenges = scraper.scrape_ctfd()
 
 flags = []
 for chall in challenges: 
@@ -50,7 +54,9 @@ for chall in challenges:
             check=False,
         )
         print(result.stdout)
-        flags.append(result.stdout.strip())
-        print(flags)
+        flag = result.stdout.strip()
+        if flag is not None:
+            scraper.submit_flag(chall['name'], flag)
+    
     except:
         print("Codex failed to run. Check if codex is installed: https://openai.com/codex/.")
