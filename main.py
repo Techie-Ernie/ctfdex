@@ -3,6 +3,7 @@ import os
 from scraper import CTFdScraper
 import yaml
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 parser = argparse.ArgumentParser(prog="CTFDex", description="CTF Solver with Codex")
 parser.add_argument("--config", '-c', default='config.yaml')
@@ -22,10 +23,11 @@ os.makedirs(CHALL_DIR, exist_ok=True)
 
 challenges = scraper.scrape_ctfd()
 
-flags = []
-for chall in challenges: 
+
+def solve_and_submit(chall):
     chall_dir = os.path.join(CHALL_DIR, chall['name'])
     os.makedirs(chall_dir, exist_ok=True)
+
     for f in chall['files']:
         if os.name == 'nt':
             subprocess.run(
@@ -38,29 +40,27 @@ for chall in challenges:
                 ["wget", f["url"]],
                 cwd=chall_dir,
                 check=False
-            )   
+            )
 
-    print(f"Downloaded all {len(chall['files'])} files!")
+    print(f"Downloaded {len(chall['files'])} files for {chall['name']}")
 
     prompt = f"""
     You are an expert Capture The Flag (CTF) player.
     You are given one challenge with the following information:
-    Challenge Name: {chall['name']},
+    Challenge Name: {chall['name']}
     Challenge Description: {chall['description']}
-    All files required to solve the challenge are in the current working directory.
-    You may inspect and reason about these files as required. 
 
-    Task: 
-    Determine the correct flag for this challenge. 
+    All files required to solve the challenge are in the current working directory.
+
+    Task:
+    Determine the correct flag for this challenge.
 
     Output rules:
-    - Output ONLY the flag 
-    - The flag format is exactly {FLAG_FORMAT}{{...}}, unless otherwise stated in the challenge description
-    - Do NOT include explanation, reasoning or other text
+    - Output ONLY the flag
+    - The flag format is exactly {FLAG_FORMAT}{{...}}, unless otherwise stated
     - If the flag cannot be determined, output {FLAG_FORMAT}{{unknown}}
-    
     """
-    
+
     try:
         result = subprocess.run(
             ["codex", "exec", "-", "--skip-git-repo-check"],
@@ -70,10 +70,25 @@ for chall in challenges:
             cwd=chall_dir,
             check=False,
         )
-        print(result.stdout)
+
         flag = result.stdout.strip()
-        if flag is not None:
-            scraper.submit_flag(chall['name'], flag)
-    
-    except:
-        print("Codex failed to run. Check if codex is installed: https://openai.com/codex/.")
+        print(f"{chall['name']}:{flag}")
+        if flag:
+            if flag == FLAG_FORMAT + "{unknown}":
+                print(f"Codex failed  to solve {chall['name']}")
+            else:
+                scraper.submit_flag(chall['name'], flag)
+
+    except Exception as e:
+        print(f"Codex failed for {chall['name']}: {e}")
+
+MAX_WORKERS = min(8, os.cpu_count()) 
+
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    futures = [executor.submit(solve_and_submit, chall) for chall in challenges]
+
+    for future in as_completed(futures):
+        try:
+            future.result()
+        except Exception as e:
+            print(f"[!] Worker error: {e}")
